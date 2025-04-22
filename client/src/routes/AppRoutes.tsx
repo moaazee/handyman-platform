@@ -1,34 +1,37 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import Home from '../pages/Home';
 import Login from '../pages/Login';
 import Register from '../pages/Register';
 import Services from '../pages/Services';
 import ProviderDashboard from '../pages/ProviderDashboard';
 import BookingForm from '../pages/BookingForm';
-import ProtectedRoute from "../routes/ProtectedRoute";
-import { useAuth } from "../hooks/useAuth";
+import Unauthorized from '../pages/Unauthorized.tsx';
+import ProtectedRoute from './ProtectedRoute';
 
 export default function AppRoutes() {
-  const { user } = useAuth();
-
   return (
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/services" element={<Services />} />
-      <Route path="/book" element={<BookingForm />} />
+      <Route path="/unauthorized" element={<Unauthorized />} />
 
-      {/* Protected Provider Route */}
+      {/* Protected Routes */}
       <Route
         path="/provider"
         element={
-          <ProtectedRoute>
-            {user?.role === "provider" ? (
-              <ProviderDashboard />
-            ) : (
-              <Navigate to="/" />
-            )}
+          <ProtectedRoute allowedRoles={['provider']}>
+            <ProviderDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/book"
+        element={
+          <ProtectedRoute allowedRoles={['customer']}>
+            <BookingForm />
           </ProtectedRoute>
         }
       />

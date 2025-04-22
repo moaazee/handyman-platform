@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Container, Form, Button, Row, Col, Card } from 'react-bootstrap';
+import api from '../api/axios';
 
 interface Service {
   id: number;
@@ -7,6 +8,7 @@ interface Service {
   category: string;
   description: string;
   image?: string;
+  userId: number;
 }
 
 export default function ProviderDashboard() {
@@ -18,8 +20,9 @@ export default function ProviderDashboard() {
   });
 
   const [services, setServices] = useState<Service[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<any>) => {
     const { name, value } = e.target;
     setForm((prev) => ({
       ...prev,
@@ -30,29 +33,23 @@ export default function ProviderDashboard() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch('http://localhost:5000/api/services', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(form),
-      });
-
-      const data = await res.json();
-      setServices(prev => [data, ...prev]); // add new service to top
+      const res = await api.post('/services', form);
+      setServices(prev => [res.data, ...prev]);
       setForm({ title: '', category: '', description: '', image: '' });
     } catch (error) {
       console.error('Failed to submit service:', error);
+      alert("You must be logged in as a provider to add services.");
     }
   };
 
   const fetchServices = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/services');
-      const data = await res.json();
-      setServices(data);
+      const res = await api.get('/services');
+      setServices(res.data);
     } catch (error) {
       console.error('Failed to fetch services:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -125,20 +122,24 @@ export default function ProviderDashboard() {
       </Form>
 
       <h4 className="mt-5 mb-3">Added Services</h4>
-      <Row xs={1} md={2} lg={3} className="g-4">
-        {services.map(service => (
-          <Col key={service.id}>
-            <Card className="h-100 shadow-sm">
-              {service.image && <Card.Img variant="top" src={service.image} />}
-              <Card.Body>
-                <Card.Title>{service.title}</Card.Title>
-                <Card.Subtitle className="mb-2 text-muted">{service.category}</Card.Subtitle>
-                <Card.Text>{service.description}</Card.Text>
-              </Card.Body>
-            </Card>
-          </Col>
-        ))}
-      </Row>
+      {loading ? (
+        <div>Loading services...</div>
+      ) : (
+        <Row xs={1} md={2} lg={3} className="g-4">
+          {services.map(service => (
+            <Col key={service.id}>
+              <Card className="h-100 shadow-sm">
+                {service.image && <Card.Img variant="top" src={service.image} />}
+                <Card.Body>
+                  <Card.Title>{service.title}</Card.Title>
+                  <Card.Subtitle className="mb-2 text-muted">{service.category}</Card.Subtitle>
+                  <Card.Text>{service.description}</Card.Text>
+                </Card.Body>
+              </Card>
+            </Col>
+          ))}
+        </Row>
+      )}
     </Container>
   );
 }

@@ -1,18 +1,22 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from '@prisma/client';
+
 const prisma = new PrismaClient();
 
 export const createBooking = async (req, res) => {
+  const { customer, serviceId } = req.body;
+
+  if (req.user.role !== 'customer') {
+    return res.status(403).json({ error: "Only customers can create bookings" });
+  }
+
   try {
-    const { serviceId } = req.body;
     const newBooking = await prisma.booking.create({
       data: {
-        customer: req.user.name,
-        userId: req.user.id,
+        customer,
         serviceId: parseInt(serviceId),
+        userId: req.user.id,
       },
-      include: {
-        service: true,
-      },
+      include: { service: true },
     });
     res.json(newBooking);
   } catch (err) {
@@ -20,6 +24,7 @@ export const createBooking = async (req, res) => {
     res.status(500).json({ error: "Failed to create booking" });
   }
 };
+
 
 export const getBookings = async (req, res) => {
   try {
@@ -31,8 +36,8 @@ export const getBookings = async (req, res) => {
     });
     res.json(bookings);
   } catch (err) {
-    console.error("Get bookings failed:", err);
-    res.status(500).json({ error: "Failed to get bookings" });
+    console.error('Get bookings failed:', err);
+    res.status(500).json({ error: 'Failed to get bookings' });
   }
 };
 
@@ -43,9 +48,9 @@ export const deleteBooking = async (req, res) => {
     await prisma.booking.delete({
       where: { id: parseInt(id) },
     });
-    res.json({ message: "Booking deleted" });
+    res.json({ message: 'Booking deleted' });
   } catch (err) {
-    console.error("Delete booking failed:", err);
-    res.status(500).json({ error: "Failed to delete booking" });
+    console.error('Delete booking failed:', err);
+    res.status(500).json({ error: 'Failed to delete booking' });
   }
 };
