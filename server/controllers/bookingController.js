@@ -1,13 +1,13 @@
 import { PrismaClient } from "@prisma/client";
-
 const prisma = new PrismaClient();
 
 export const createBooking = async (req, res) => {
   try {
-    const { customer, serviceId } = req.body;
+    const { serviceId } = req.body;
     const newBooking = await prisma.booking.create({
       data: {
-        customer,
+        customer: req.user.name,
+        userId: req.user.id,
         serviceId: parseInt(serviceId),
       },
       include: {
@@ -24,6 +24,7 @@ export const createBooking = async (req, res) => {
 export const getBookings = async (req, res) => {
   try {
     const bookings = await prisma.booking.findMany({
+      where: { userId: req.user.id },
       include: {
         service: true,
       },

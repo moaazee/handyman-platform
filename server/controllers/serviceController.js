@@ -1,11 +1,10 @@
 import { PrismaClient } from '@prisma/client';
-
 const prisma = new PrismaClient();
 
-// GET /api/services
 export const getAllServices = async (req, res) => {
   try {
     const services = await prisma.service.findMany({
+      include: { user: true },
       orderBy: { createdAt: 'desc' }
     });
     res.json(services);
@@ -15,7 +14,6 @@ export const getAllServices = async (req, res) => {
   }
 };
 
-// POST /api/services
 export const createService = async (req, res) => {
   const { title, category, description, image } = req.body;
 
@@ -29,7 +27,8 @@ export const createService = async (req, res) => {
         title,
         category,
         description,
-        image
+        image,
+        userId: req.user.id
       }
     });
 

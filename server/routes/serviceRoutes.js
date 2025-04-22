@@ -1,9 +1,10 @@
-import express from 'express';
-import { getAllServices, createService } from '../controllers/serviceController.js';
+import express from "express";
+import { createService, getAllServices } from "../controllers/serviceController.js";
+import { verifyToken } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.get('/', getAllServices);
-router.post('/', createService);
+router.get("/", getAllServices);
+router.post("/", verifyToken, createService);
 
 export default router;
