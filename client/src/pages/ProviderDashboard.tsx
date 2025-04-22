@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Container, Form, Button, Row, Col, Card } from 'react-bootstrap';
+import { Container, Form, Button, Row, Col, Card, ProgressBar } from 'react-bootstrap';
 import api from '../api/axios';
+import { storage, ref, uploadBytesResumable, getDownloadURL } from '../firebaseConfig'; // Correct import from firebaseConfig
+import React, { MouseEvent } from 'react';
+
+declare global {
+  interface Window { cloudinary: any; }
+}
 
 interface Service {
   id: number;
@@ -32,6 +38,9 @@ export default function ProviderDashboard() {
   const [services, setServices] = useState<Service[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [progress, setProgress] = useState(0); // Track upload progress
+  const [uploading, setUploading] = useState(false); // Track if image is being uploaded
+  const [imagePreview, setImagePreview] = useState<string | null>(null); // Store image preview URL
 
   const handleChange = (e: React.ChangeEvent<any>) => {
     const { name, value } = e.target;
@@ -41,12 +50,62 @@ export default function ProviderDashboard() {
     }));
   };
 
+  const handleImageUpload = (e: React.MouseEvent<HTMLButtonElement>) => {
+    console.log("Button clicked");
+
+    const inputFile = document.createElement('input');
+    inputFile.type = 'file';
+    inputFile.accept = 'image/*';
+
+    inputFile.onchange = (event: Event) => {
+      const file = (event.target as HTMLInputElement).files?.[0]; // Get the file selected by the user
+      if (file) {
+        console.log("File selected:", file);
+
+        // Set the preview URL of the image
+        const previewUrl = URL.createObjectURL(file);
+        setImagePreview(previewUrl);
+
+        const storageRef = ref(storage, `images/${file.name}`);
+        const uploadTask = uploadBytesResumable(storageRef, file); // Upload the file to Firebase Storage
+
+        setUploading(true); // Start uploading
+
+        uploadTask.on(
+          "state_changed",
+          (snapshot) => {
+            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            setProgress(progress); // Update progress state
+          },
+          (error) => {
+            console.error("Upload error:", error);
+            setUploading(false); // Reset the uploading state
+          },
+          () => {
+            getDownloadURL(uploadTask.snapshot.ref).then((url) => {
+              console.log("File uploaded, URL:", url);
+              setForm((prev) => ({
+                ...prev,
+                image: url, // Store the image URL in the state
+              }));
+              setUploading(false); // Reset the uploading state
+            });
+          }
+        );
+      } else {
+        console.log("No file selected");
+      }
+    };
+
+    inputFile.click(); // Trigger the file input click
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await api.post('/services', form);
-      setServices(prev => [res.data, ...prev]);
-      setForm({ title: '', category: '', description: '', image: '' });
+      const res = await api.post('/services', form);  // Send the service data to the back-end
+      setServices(prev => [res.data, ...prev]);  // Add new service to the top
+      setForm({ title: '', category: '', description: '', image: '' });  // Reset the form
     } catch (error) {
       console.error('Failed to submit service:', error);
       alert("You must be logged in as a provider to add services.");
@@ -125,13 +184,24 @@ export default function ProviderDashboard() {
         </Form.Group>
 
         <Form.Group className="mt-3">
-          <Form.Label>Image URL (optional)</Form.Label>
-          <Form.Control
-            type="text"
-            name="image"
-            value={form.image}
-            onChange={handleChange}
-          />
+          <Form.Label>Image Upload</Form.Label>
+          <Button variant="secondary" onClick={handleImageUpload} disabled={uploading}>
+            {uploading ? 'Uploading...' : 'Upload Image'}
+          </Button>
+
+          {/* Display the progress bar when uploading */}
+          {uploading && (
+            <div className="mt-2">
+              <ProgressBar now={progress} label={`${Math.round(progress)}%`} />
+            </div>
+          )}
+
+          {/* Display the image preview after upload */}
+          {imagePreview && !uploading && (
+            <div className="mt-3">
+              <img src={imagePreview} alt="Service Preview" width="200" />
+            </div>
+          )}
         </Form.Group>
 
         <div className="d-grid mt-4">
@@ -141,42 +211,20 @@ export default function ProviderDashboard() {
 
       {/* Services Display */}
       <h4 className="mt-5 mb-3">Your Services</h4>
-      {loading ? (
-        <p>Loading services...</p>
-      ) : (
-        <Row xs={1} md={2} lg={3} className="g-4">
-          {services.map(service => (
-            <Col key={service.id}>
-              <Card className="h-100 shadow-sm">
-                {service.image && <Card.Img variant="top" src={service.image} />}
-                <Card.Body>
-                  <Card.Title>{service.title}</Card.Title>
-                  <Card.Subtitle className="mb-2 text-muted">{service.category}</Card.Subtitle>
-                  <Card.Text>{service.description}</Card.Text>
-                </Card.Body>
-              </Card>
-            </Col>
-          ))}
-        </Row>
-      )}
-
-      {/* Bookings Section */}
-      <h4 className="mt-5 mb-3">Bookings for Your Services</h4>
-      {providerBookings.length === 0 ? (
-        <p>No bookings yet for your services.</p>
-      ) : (
-        providerBookings.map((b) => (
-          <Card key={b.id} className="mb-3 shadow-sm">
-            <Card.Body>
-              <Card.Title>{b.service.title}</Card.Title>
-              <Card.Text>
-                Booked by <strong>{b.customer}</strong> on{" "}
-                {new Date(b.bookedAt).toLocaleString()}
-              </Card.Text>
-            </Card.Body>
-          </Card>
-        ))
-      )}
+      <Row xs={1} md={2} lg={3} className="g-4">
+        {services.map(service => (
+          <Col key={service.id}>
+            <Card className="h-100 shadow-sm">
+              {service.image && <Card.Img variant="top" src={service.image} />}
+              <Card.Body>
+                <Card.Title>{service.title}</Card.Title>
+                <Card.Subtitle className="mb-2 text-muted">{service.category}</Card.Subtitle>
+                <Card.Text>{service.description}</Card.Text>
+              </Card.Body>
+            </Card>
+          </Col>
+        ))}
+      </Row>
     </Container>
   );
 }
