@@ -11,6 +11,16 @@ interface Service {
   userId: number;
 }
 
+interface Booking {
+  id: number;
+  customer: string;
+  bookedAt: string;
+  serviceId: number;
+  service: {
+    title: string;
+  };
+}
+
 export default function ProviderDashboard() {
   const [form, setForm] = useState({
     title: '',
@@ -20,6 +30,7 @@ export default function ProviderDashboard() {
   });
 
   const [services, setServices] = useState<Service[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
 
   const handleChange = (e: React.ChangeEvent<any>) => {
@@ -42,25 +53,36 @@ export default function ProviderDashboard() {
     }
   };
 
-  const fetchServices = async () => {
+  const fetchData = async () => {
     try {
-      const res = await api.get('/services');
-      setServices(res.data);
+      const [servicesRes, bookingsRes] = await Promise.all([
+        api.get('/services'),
+        api.get('/bookings'),
+      ]);
+      setServices(servicesRes.data);
+      setBookings(bookingsRes.data);
     } catch (error) {
-      console.error('Failed to fetch services:', error);
+      console.error('Failed to load provider dashboard data', error);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchServices();
+    fetchData();
   }, []);
+
+  // Filter bookings only related to this provider's services
+  const providerServiceIds = services.map((s) => s.id);
+  const providerBookings = bookings.filter((b) =>
+    providerServiceIds.includes(b.serviceId)
+  );
 
   return (
     <Container className="py-5">
-      <h2 className="text-center mb-4">Add a New Service</h2>
+      <h2 className="text-center mb-4">Provider Dashboard</h2>
 
+      {/* Create Service Form */}
       <Form onSubmit={handleSubmit}>
         <Row className="g-3">
           <Col md={6}>
@@ -78,18 +100,14 @@ export default function ProviderDashboard() {
           <Col md={6}>
             <Form.Group>
               <Form.Label>Category</Form.Label>
-              <Form.Select
+              <Form.Control
+                type="text"
                 name="category"
                 value={form.category}
                 onChange={handleChange}
+                placeholder="Enter service category (e.g., Painting, Flooring, etc.)"
                 required
-              >
-                <option value="">Select...</option>
-                <option value="Painting">Painting</option>
-                <option value="Cleaning">Cleaning</option>
-                <option value="Plumbing">Plumbing</option>
-                <option value="Electrical">Electrical</option>
-              </Form.Select>
+              />
             </Form.Group>
           </Col>
         </Row>
@@ -121,9 +139,10 @@ export default function ProviderDashboard() {
         </div>
       </Form>
 
-      <h4 className="mt-5 mb-3">Added Services</h4>
+      {/* Services Display */}
+      <h4 className="mt-5 mb-3">Your Services</h4>
       {loading ? (
-        <div>Loading services...</div>
+        <p>Loading services...</p>
       ) : (
         <Row xs={1} md={2} lg={3} className="g-4">
           {services.map(service => (
@@ -139,6 +158,24 @@ export default function ProviderDashboard() {
             </Col>
           ))}
         </Row>
+      )}
+
+      {/* Bookings Section */}
+      <h4 className="mt-5 mb-3">Bookings for Your Services</h4>
+      {providerBookings.length === 0 ? (
+        <p>No bookings yet for your services.</p>
+      ) : (
+        providerBookings.map((b) => (
+          <Card key={b.id} className="mb-3 shadow-sm">
+            <Card.Body>
+              <Card.Title>{b.service.title}</Card.Title>
+              <Card.Text>
+                Booked by <strong>{b.customer}</strong> on{" "}
+                {new Date(b.bookedAt).toLocaleString()}
+              </Card.Text>
+            </Card.Body>
+          </Card>
+        ))
       )}
     </Container>
   );
