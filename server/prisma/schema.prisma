@@ -8,14 +8,16 @@ datasource db {
 }
 
 model User {
-  id       Int      @id @default(autoincrement())
-  name     String
-  email    String   @unique
-  password String
-  role     String   // "customer" | "provider" | "admin"
+  id          Int          @id @default(autoincrement())
+  name        String
+  email       String       @unique
+  password    String
+  role        String       // "customer" | "provider" | "admin"
 
-  services Service[]
-  bookings Booking[]
+  services    Service[]
+  bookings    Booking[]
+  jobRequests JobRequest[]
+  offers      Offer[]
 }
 
 model Service {
@@ -40,4 +42,33 @@ model Booking {
   userId      Int
   user        User     @relation(fields: [userId], references: [id])
   service     Service  @relation(fields: [serviceId], references: [id])
+}
+
+model JobRequest {
+  id          Int       @id @default(autoincrement())
+  title       String
+  category    String
+  description String
+  image       String?
+  location    String
+  deadline    DateTime
+  createdAt   DateTime  @default(now())
+
+  userId      Int
+  user        User      @relation(fields: [userId], references: [id])
+  offers      Offer[]
+}
+
+model Offer {
+  id           Int       @id @default(autoincrement())
+  message      String
+  price        Float
+  available    DateTime
+  createdAt    DateTime  @default(now())
+
+  jobRequestId Int
+  providerId   Int
+
+  jobRequest   JobRequest @relation(fields: [jobRequestId], references: [id])
+  provider     User       @relation(fields: [providerId], references: [id])
 }

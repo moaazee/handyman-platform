@@ -19,11 +19,23 @@ export default function Navbar() {
         <BSNavbar.Collapse id="navbar-nav">
           <Nav className="ms-auto">
             <Nav.Link as={Link} to="/">Home</Nav.Link>
-            <Nav.Link as={Link} to="/services">Services</Nav.Link>
-            <Nav.Link as={Link} to="/book">Booking</Nav.Link>
+
+            {user?.role === "customer" && (
+              <>
+                <Nav.Link as={Link} to="/post-job">Post a Job</Nav.Link>
+                <Nav.Link as={Link} to="/dashboard-customer">My Jobs</Nav.Link>
+              </>
+            )}
 
             {user?.role === "provider" && (
-              <Nav.Link as={Link} to="/provider">Provider</Nav.Link>
+              <>
+                <Nav.Link as={Link} to="/browse-jobs">Browse Jobs</Nav.Link>
+                <Nav.Link as={Link} to="/provider">My Offers</Nav.Link>
+              </>
+            )}
+
+            {user?.role === "admin" && (
+              <Nav.Link as={Link} to="/admin-dashboard">Admin</Nav.Link>
             )}
 
             {!user ? (

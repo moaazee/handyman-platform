@@ -1,12 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Container, Form, Button, Row, Col, Card, ProgressBar } from 'react-bootstrap';
 import api from '../api/axios';
-import { storage, ref, uploadBytesResumable, getDownloadURL } from '../firebaseConfig'; // Correct import from firebaseConfig
-import React, { MouseEvent } from 'react';
-
-declare global {
-  interface Window { cloudinary: any; }
-}
+import { storage, ref, uploadBytesResumable, getDownloadURL } from '../firebaseConfig';
 
 interface Service {
   id: number;
@@ -38,9 +33,9 @@ export default function ProviderDashboard() {
   const [services, setServices] = useState<Service[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
-  const [progress, setProgress] = useState(0); // Track upload progress
-  const [uploading, setUploading] = useState(false); // Track if image is being uploaded
-  const [imagePreview, setImagePreview] = useState<string | null>(null); // Store image preview URL
+  const [progress, setProgress] = useState(0);
+  const [uploading, setUploading] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<any>) => {
     const { name, value } = e.target;
@@ -51,61 +46,53 @@ export default function ProviderDashboard() {
   };
 
   const handleImageUpload = (e: React.MouseEvent<HTMLButtonElement>) => {
-    console.log("Button clicked");
-
-    const inputFile = document.createElement('input');
-    inputFile.type = 'file';
-    inputFile.accept = 'image/*';
+    const inputFile = document.createElement("input");
+    inputFile.type = "file";
+    inputFile.accept = "image/*";
 
     inputFile.onchange = (event: Event) => {
-      const file = (event.target as HTMLInputElement).files?.[0]; // Get the file selected by the user
-      if (file) {
-        console.log("File selected:", file);
+      const file = (event.target as HTMLInputElement).files?.[0];
+      if (!file) return;
 
-        // Set the preview URL of the image
-        const previewUrl = URL.createObjectURL(file);
-        setImagePreview(previewUrl);
+      const storageRef = ref(storage, `images/${file.name}`);
+      const uploadTask = uploadBytesResumable(storageRef, file);
 
-        const storageRef = ref(storage, `images/${file.name}`);
-        const uploadTask = uploadBytesResumable(storageRef, file); // Upload the file to Firebase Storage
+      setUploading(true);
+      setProgress(0);
+      setImagePreview(URL.createObjectURL(file));
 
-        setUploading(true); // Start uploading
-
-        uploadTask.on(
-          "state_changed",
-          (snapshot) => {
-            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-            setProgress(progress); // Update progress state
-          },
-          (error) => {
-            console.error("Upload error:", error);
-            setUploading(false); // Reset the uploading state
-          },
-          () => {
-            getDownloadURL(uploadTask.snapshot.ref).then((url) => {
-              console.log("File uploaded, URL:", url);
-              setForm((prev) => ({
-                ...prev,
-                image: url, // Store the image URL in the state
-              }));
-              setUploading(false); // Reset the uploading state
-            });
-          }
-        );
-      } else {
-        console.log("No file selected");
-      }
+      uploadTask.on(
+        "state_changed",
+        (snapshot) => {
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          setProgress(progress);
+        },
+        (error) => {
+          console.error("Upload error:", error);
+          setUploading(false);
+        },
+        () => {
+          getDownloadURL(uploadTask.snapshot.ref).then((url) => {
+            setForm((prev) => ({
+              ...prev,
+              image: url,
+            }));
+            setUploading(false);
+          });
+        }
+      );
     };
 
-    inputFile.click(); // Trigger the file input click
+    inputFile.click();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await api.post('/services', form);  // Send the service data to the back-end
-      setServices(prev => [res.data, ...prev]);  // Add new service to the top
-      setForm({ title: '', category: '', description: '', image: '' });  // Reset the form
+      const res = await api.post('/services', form);
+      setServices(prev => [res.data, ...prev]);
+      setForm({ title: '', category: '', description: '', image: '' });
+      setImagePreview(null);
     } catch (error) {
       console.error('Failed to submit service:', error);
       alert("You must be logged in as a provider to add services.");
@@ -131,7 +118,6 @@ export default function ProviderDashboard() {
     fetchData();
   }, []);
 
-  // Filter bookings only related to this provider's services
   const providerServiceIds = services.map((s) => s.id);
   const providerBookings = bookings.filter((b) =>
     providerServiceIds.includes(b.serviceId)
@@ -141,7 +127,6 @@ export default function ProviderDashboard() {
     <Container className="py-5">
       <h2 className="text-center mb-4">Provider Dashboard</h2>
 
-      {/* Create Service Form */}
       <Form onSubmit={handleSubmit}>
         <Row className="g-3">
           <Col md={6}>
@@ -164,7 +149,7 @@ export default function ProviderDashboard() {
                 name="category"
                 value={form.category}
                 onChange={handleChange}
-                placeholder="Enter service category (e.g., Painting, Flooring, etc.)"
+                placeholder="e.g., Painting, Plumbing"
                 required
               />
             </Form.Group>
@@ -189,17 +174,15 @@ export default function ProviderDashboard() {
             {uploading ? 'Uploading...' : 'Upload Image'}
           </Button>
 
-          {/* Display the progress bar when uploading */}
           {uploading && (
             <div className="mt-2">
               <ProgressBar now={progress} label={`${Math.round(progress)}%`} />
             </div>
           )}
 
-          {/* Display the image preview after upload */}
-          {imagePreview && !uploading && (
+          {imagePreview && (
             <div className="mt-3">
-              <img src={imagePreview} alt="Service Preview" width="200" />
+              <img src={imagePreview} alt="Preview" width="200" className="rounded shadow-sm" />
             </div>
           )}
         </Form.Group>
@@ -209,7 +192,6 @@ export default function ProviderDashboard() {
         </div>
       </Form>
 
-      {/* Services Display */}
       <h4 className="mt-5 mb-3">Your Services</h4>
       <Row xs={1} md={2} lg={3} className="g-4">
         {services.map(service => (

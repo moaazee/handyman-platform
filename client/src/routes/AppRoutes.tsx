@@ -9,6 +9,10 @@ import Unauthorized from '../pages/Unauthorized.tsx';
 import ProtectedRoute from './ProtectedRoute';
 import CustomerDashboard from "../pages/CustomerDashboard";
 import AdminDashboard from "../pages/AdminDashboard";
+import PostJob from '../pages/PostJob';
+import BrowseJobs from '../pages/BrowseJobs';
+import MakeOffer from '../pages/MakeOffer';
+import ViewOffers from '../pages/ViewOffers';
 
 export default function AppRoutes() {
   return (
@@ -25,6 +29,41 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute allowedRoles={['provider']}>
             <ProviderDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/post-job"
+        element={
+          <ProtectedRoute allowedRoles={['customer']}>
+            <PostJob />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/browse-jobs"
+        element={
+          <ProtectedRoute allowedRoles={['provider']}>
+            <BrowseJobs />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/make-offer/:jobId"
+        element={
+          <ProtectedRoute allowedRoles={['provider']}>
+            <MakeOffer />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/job/:jobId/offers"
+        element={
+          <ProtectedRoute allowedRoles={['customer']}>
+            <ViewOffers />
           </ProtectedRoute>
         }
       />
