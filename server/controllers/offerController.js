@@ -1,4 +1,6 @@
 import { PrismaClient } from "@prisma/client";
+import { getCustomerDiscount } from "../utils/discountHelper.js";
+
 const prisma = new PrismaClient();
 
 // Create an offer
@@ -47,7 +49,7 @@ export const getOffersForJob = async (req, res) => {
   }
 };
 
-// Accept an offer and create a booking
+// Accept an offer and create a booking with discount applied
 export const acceptOffer = async (req, res) => {
   const { offerId } = req.params;
 
@@ -66,16 +68,24 @@ export const acceptOffer = async (req, res) => {
 
     if (!offer) return res.status(404).json({ error: "Offer not found" });
 
+    const user = offer.jobRequest.user;
+    const discount = getCustomerDiscount(user.subscriptionStart);
+    const finalPrice = offer.price * (1 - discount / 100);
+
     const booking = await prisma.booking.create({
       data: {
-        customer: offer.jobRequest.user.name,
+        customer: user.name,
         bookedAt: new Date(),
-        serviceId: 0, // Placeholder — you can replace this with a dynamic serviceId if needed
-        userId: offer.jobRequest.userId,
+        price: finalPrice,
+        serviceId: 0, // Update if needed
+        userId: user.id,
       },
     });
 
-    res.json({ message: "Offer accepted. Booking created.", booking });
+    res.json({
+      message: `Offer accepted. Final price after ${discount}% discount: DKK ${finalPrice.toFixed(2)}`,
+      booking,
+    });
   } catch (err) {
     console.error("Accept offer failed:", err);
     res.status(500).json({ error: "Failed to accept offer" });

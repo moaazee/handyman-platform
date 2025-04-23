@@ -13,6 +13,7 @@ import PostJob from '../pages/PostJob';
 import BrowseJobs from '../pages/BrowseJobs';
 import MakeOffer from '../pages/MakeOffer';
 import ViewOffers from '../pages/ViewOffers';
+import AdminAnalytics from "../pages/AdminAnalytics";
 
 export default function AppRoutes() {
   return (
@@ -82,6 +83,15 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute allowedRoles={["admin"]}>
             <AdminDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin-analytics"
+        element={
+          <ProtectedRoute allowedRoles={["admin"]}>
+            <AdminAnalytics />
           </ProtectedRoute>
         }
       />

@@ -39,7 +39,9 @@ model Booking {
   customer    String
   bookedAt    DateTime @default(now())
   serviceId   Int
-
+  price       Float
+  status        String   @default("active")
+  rescheduledAt DateTime?                   
   userId      Int
   user        User     @relation(fields: [userId], references: [id])
   service     Service  @relation(fields: [serviceId], references: [id])

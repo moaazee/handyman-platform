@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+// Create booking
 export const createBooking = async (req, res) => {
   const { customer, serviceId } = req.body;
 
@@ -25,7 +26,7 @@ export const createBooking = async (req, res) => {
   }
 };
 
-
+// Get all bookings for the logged-in user
 export const getBookings = async (req, res) => {
   try {
     const bookings = await prisma.booking.findMany({
@@ -33,6 +34,7 @@ export const getBookings = async (req, res) => {
       include: {
         service: true,
       },
+      orderBy: { bookedAt: 'desc' },
     });
     res.json(bookings);
   } catch (err) {
@@ -41,16 +43,38 @@ export const getBookings = async (req, res) => {
   }
 };
 
-export const deleteBooking = async (req, res) => {
+// Cancel a booking by updating status
+export const cancelBooking = async (req, res) => {
   const { id } = req.params;
 
   try {
-    await prisma.booking.delete({
+    const booking = await prisma.booking.update({
       where: { id: parseInt(id) },
+      data: { status: "cancelled" },
     });
-    res.json({ message: 'Booking deleted' });
+    res.json({ message: "Booking cancelled", booking });
   } catch (err) {
-    console.error('Delete booking failed:', err);
-    res.status(500).json({ error: 'Failed to delete booking' });
+    console.error("Cancel booking failed:", err);
+    res.status(500).json({ error: "Failed to cancel booking" });
+  }
+};
+
+// Reschedule a booking
+export const rescheduleBooking = async (req, res) => {
+  const { id } = req.params;
+  const { newDate } = req.body;
+
+  try {
+    const booking = await prisma.booking.update({
+      where: { id: parseInt(id) },
+      data: {
+        bookedAt: new Date(newDate),
+        rescheduledAt: new Date(),
+      },
+    });
+    res.json({ message: "Booking rescheduled", booking });
+  } catch (err) {
+    console.error("Reschedule failed:", err);
+    res.status(500).json({ error: "Failed to reschedule booking" });
   }
 };

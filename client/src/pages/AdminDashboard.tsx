@@ -6,49 +6,40 @@ interface User {
   id: number;
   name: string;
   email: string;
-  role: string; // "customer", "provider", "admin"
-}
-
-interface Service {
-  id: number;
-  title: string;
-  category: string;
-  description: string;
+  role: string;
 }
 
 interface Booking {
   id: number;
   customer: string;
-  service: string;
   bookedAt: string;
+  price: number;
+  status: string;
+  user: {
+    name: string;
+    email: string;
+  };
+  service: {
+    title: string;
+  };
 }
 
 export default function AdminDashboard() {
   const [users, setUsers] = useState<User[]>([]);
-  const [services, setServices] = useState<Service[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
 
   const fetchUsers = async () => {
     try {
-      const res = await api.get("/users");
+      const res = await api.get("/admin/users");
       setUsers(res.data);
     } catch (err) {
       console.error("Error loading users", err);
     }
   };
 
-  const fetchServices = async () => {
-    try {
-      const res = await api.get("/services");
-      setServices(res.data);
-    } catch (err) {
-      console.error("Error loading services", err);
-    }
-  };
-
   const fetchBookings = async () => {
     try {
-      const res = await api.get("/bookings");
+      const res = await api.get("/admin/bookings");
       setBookings(res.data);
     } catch (err) {
       console.error("Error loading bookings", err);
@@ -56,26 +47,19 @@ export default function AdminDashboard() {
   };
 
   const deleteUser = async (id: number) => {
+    if (!window.confirm("Delete this user?")) return;
     try {
-      await api.delete(`/users/${id}`);
+      await api.delete(`/admin/users/${id}`);
       fetchUsers();
     } catch (err) {
       console.error("Error deleting user", err);
     }
   };
 
-  const deleteService = async (id: number) => {
-    try {
-      await api.delete(`/services/${id}`);
-      fetchServices();
-    } catch (err) {
-      console.error("Error deleting service", err);
-    }
-  };
-
   const deleteBooking = async (id: number) => {
+    if (!window.confirm("Cancel this booking?")) return;
     try {
-      await api.delete(`/bookings/${id}`);
+      await api.delete(`/admin/bookings/${id}`);
       fetchBookings();
     } catch (err) {
       console.error("Error deleting booking", err);
@@ -84,7 +68,6 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchUsers();
-    fetchServices();
     fetchBookings();
   }, []);
 
@@ -112,38 +95,7 @@ export default function AdminDashboard() {
                   <td>{user.email}</td>
                   <td>{user.role}</td>
                   <td>
-                    <Button variant="danger" onClick={() => deleteUser(user.id)}>
-                      Delete
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
-        </Card.Body>
-      </Card>
-
-      {/* Services Table */}
-      <Card className="mb-4 shadow-sm">
-        <Card.Body>
-          <h4>Services</h4>
-          <Table striped bordered hover responsive>
-            <thead>
-              <tr>
-                <th>Title</th>
-                <th>Category</th>
-                <th>Description</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {services.map((service) => (
-                <tr key={service.id}>
-                  <td>{service.title}</td>
-                  <td>{service.category}</td>
-                  <td>{service.description}</td>
-                  <td>
-                    <Button variant="danger" onClick={() => deleteService(service.id)}>
+                    <Button variant="danger" size="sm" onClick={() => deleteUser(user.id)}>
                       Delete
                     </Button>
                   </td>
@@ -157,13 +109,16 @@ export default function AdminDashboard() {
       {/* Bookings Table */}
       <Card className="mb-4 shadow-sm">
         <Card.Body>
-          <h4>Bookings</h4>
+          <h4>All Bookings</h4>
           <Table striped bordered hover responsive>
             <thead>
               <tr>
                 <th>Customer</th>
                 <th>Service</th>
+                <th>Status</th>
                 <th>Booked At</th>
+                <th>Price</th>
+                <th>User (email)</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -171,10 +126,23 @@ export default function AdminDashboard() {
               {bookings.map((booking) => (
                 <tr key={booking.id}>
                   <td>{booking.customer}</td>
-                  <td>{booking.service}</td>
-                  <td>{new Date(booking.bookedAt).toLocaleString()}</td>
+                  <td>{booking.service.title}</td>
                   <td>
-                    <Button variant="danger" onClick={() => deleteBooking(booking.id)}>
+                    <strong
+                      className={
+                        booking.status === "cancelled" ? "text-danger" : "text-success"
+                      }
+                    >
+                      {booking.status}
+                    </strong>
+                  </td>
+                  <td>{new Date(booking.bookedAt).toLocaleString()}</td>
+                  <td>DKK {booking.price.toFixed(2)}</td>
+                  <td>
+                    {booking.user.name} ({booking.user.email})
+                  </td>
+                  <td>
+                    <Button variant="danger" size="sm" onClick={() => deleteBooking(booking.id)}>
                       Cancel
                     </Button>
                   </td>
