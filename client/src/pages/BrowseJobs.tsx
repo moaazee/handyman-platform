@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Container, Card, Button, Row, Col, Badge } from 'react-bootstrap';
 import api from '../api/axios';
 import { useAuth } from '../hooks/useAuth';
+import { Link } from 'react-router-dom';
 
 interface JobRequest {
   id: number;
@@ -57,9 +58,11 @@ export default function BrowseJobs() {
                 <Card.Text className="text-muted">
                   Posted by {job.user.name} 
                 </Card.Text>
-                <Button variant="primary" as="a" href={`/make-offer/${job.id}`}>
-                  Make Offer
-                </Button>
+                <Link to={`/make-offer/${job.id}`} style={{ textDecoration: 'none' }}>
+                  <Button variant="primary">
+                    Make Offer
+                  </Button>
+                </Link>
               </Card.Body>
             </Card>
           </Col>

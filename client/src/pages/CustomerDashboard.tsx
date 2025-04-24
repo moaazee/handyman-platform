@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Container, Card, Button, Alert, Form } from "react-bootstrap";
+import { Container, Card, Button, Alert, Form, Row, Col, Badge } from "react-bootstrap";
 import api from "../api/axios";
 
 interface Booking {
@@ -14,11 +14,34 @@ interface Booking {
   };
 }
 
+interface Job {
+  id: number;
+  title: string;
+  category: string;
+  description: string;
+  location: string;
+  deadline: string;
+  createdAt: string;
+}
+
+interface Offer {
+  id: number;
+  message: string;
+  price: number;
+  available: string;
+  provider: {
+    name: string;
+    email: string;
+  };
+}
+
 export default function CustomerDashboard() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [discount, setDiscount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [rescheduleDate, setRescheduleDate] = useState<{ [key: number]: string }>({});
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [offersMap, setOffersMap] = useState<{ [jobId: number]: Offer[] }>({});
 
   const fetchBookings = async () => {
     try {
@@ -37,6 +60,28 @@ export default function CustomerDashboard() {
       setDiscount(res.data.discount);
     } catch (err) {
       console.error("Failed to fetch discount", err);
+    }
+  };
+
+  const fetchJobsAndOffers = async () => {
+    try {
+      const jobsRes = await api.get("/jobs/me");
+      setJobs(jobsRes.data);
+
+      const offersByJob: { [jobId: number]: Offer[] } = {};
+      await Promise.all(
+        jobsRes.data.map(async (job: Job) => {
+          try {
+            const offerRes = await api.get(`/offers/job/${job.id}`);
+            offersByJob[job.id] = offerRes.data;
+          } catch (err) {
+            console.error(`Failed to fetch offers for job ${job.id}`, err);
+          }
+        })
+      );
+      setOffersMap(offersByJob);
+    } catch (err) {
+      console.error("Failed to fetch posted jobs or offers", err);
     }
   };
 
@@ -64,6 +109,7 @@ export default function CustomerDashboard() {
   useEffect(() => {
     fetchBookings();
     fetchDiscount();
+    fetchJobsAndOffers();
   }, []);
 
   return (
@@ -141,6 +187,46 @@ export default function CustomerDashboard() {
           </Card>
         ))
       )}
+
+      <hr className="my-5" />
+      <h2 className="text-center mb-4">Your Posted Jobs</h2>
+      <Row className="g-4">
+        {jobs.map((job) => (
+          <Col key={job.id} md={6} lg={4}>
+            <Card className="shadow-sm h-100">
+              <Card.Body>
+                <Card.Title>{job.title}</Card.Title>
+                <Badge bg="info" className="mb-2">{job.category}</Badge>
+                <Card.Text>{job.description}</Card.Text>
+                <Card.Text><strong>Location:</strong> {job.location}</Card.Text>
+                <Card.Text><strong>Deadline:</strong> {new Date(job.deadline).toLocaleDateString()}</Card.Text>
+                <Card.Text className="text-muted">
+                  Posted on {new Date(job.createdAt).toLocaleDateString()}
+                </Card.Text>
+
+                {offersMap[job.id] && offersMap[job.id].length > 0 && (
+                  <>
+                    <hr />
+                    <strong>Offers:</strong>
+                    {offersMap[job.id].map((offer) => (
+                      <Card key={offer.id} className="mt-2 shadow-sm">
+                        <Card.Body>
+                          <Card.Text>
+                            <strong>{offer.provider.name}</strong>
+                          </Card.Text>
+                          <Card.Text>💬 {offer.message}</Card.Text>
+                          <Card.Text>💰 DKK {offer.price}</Card.Text>
+                          <Card.Text>📅 Available: {new Date(offer.available).toLocaleDateString()}</Card.Text>
+                        </Card.Body>
+                      </Card>
+                    ))}
+                  </>
+                )}
+              </Card.Body>
+            </Card>
+          </Col>
+        ))}
+      </Row>
     </Container>
   );
 }

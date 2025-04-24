@@ -31,7 +31,7 @@ export default function MakeOffer() {
       });
 
       alert("Offer submitted!");
-      navigate("/browse-jobs");
+      navigate("/my-offers");
     } catch (err) {
       console.error("Offer failed:", err);
       alert("Failed to submit offer.");
@@ -41,21 +41,39 @@ export default function MakeOffer() {
   return (
     <Container className="py-5">
       <h2 className="text-center mb-4">Make an Offer</h2>
-
       <Form onSubmit={handleSubmit}>
         <Form.Group className="mb-3">
           <Form.Label>Message</Form.Label>
-          <Form.Control as="textarea" rows={3} name="message" value={form.message} onChange={handleChange} required />
+          <Form.Control
+            as="textarea"
+            rows={3}
+            name="message"
+            value={form.message}
+            onChange={handleChange}
+            required
+          />
         </Form.Group>
 
         <Form.Group className="mb-3">
           <Form.Label>Proposed Price (DKK)</Form.Label>
-          <Form.Control type="number" name="price" value={form.price} onChange={handleChange} required />
+          <Form.Control
+            type="number"
+            name="price"
+            value={form.price}
+            onChange={handleChange}
+            required
+          />
         </Form.Group>
 
         <Form.Group className="mb-3">
           <Form.Label>Available Date</Form.Label>
-          <Form.Control type="date" name="available" value={form.available} onChange={handleChange} required />
+          <Form.Control
+            type="date"
+            name="available"
+            value={form.available}
+            onChange={handleChange}
+            required
+          />
         </Form.Group>
 
         <div className="d-grid">

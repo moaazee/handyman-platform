@@ -91,3 +91,19 @@ export const acceptOffer = async (req, res) => {
     res.status(500).json({ error: "Failed to accept offer" });
   }
 };
+
+// Get all offers made by the logged-in provider (for Provider Dashboard)
+export const getMyOffers = async (req, res) => {
+  try {
+    console.log("Provider ID:", req.user.id); 
+    const offers = await prisma.offer.findMany({
+      where: { providerId: req.user.id },
+      include: { jobRequest: { include: { user: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json(offers);
+  } catch (err) {
+    console.error("Failed to fetch provider's offers:", err);
+    res.status(500).json({ error: "Failed to fetch offers" });
+  }
+};

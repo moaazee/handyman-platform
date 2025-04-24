@@ -14,6 +14,7 @@ import BrowseJobs from '../pages/BrowseJobs';
 import MakeOffer from '../pages/MakeOffer';
 import ViewOffers from '../pages/ViewOffers';
 import AdminAnalytics from "../pages/AdminAnalytics";
+import MyOffers from '../pages/MyOffers';
 
 export default function AppRoutes() {
   return (
@@ -56,6 +57,15 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute allowedRoles={['provider']}>
             <MakeOffer />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/my-offers"
+        element={
+          <ProtectedRoute allowedRoles={['provider']}>
+            <MyOffers />
           </ProtectedRoute>
         }
       />
