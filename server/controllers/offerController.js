@@ -61,6 +61,7 @@ export const acceptOffer = async (req, res) => {
         jobRequest: {
           include: {
             user: true,
+            offers: true,
           },
         },
       },
@@ -68,18 +69,52 @@ export const acceptOffer = async (req, res) => {
 
     if (!offer) return res.status(404).json({ error: "Offer not found" });
 
+    // Check if an offer is already accepted for this job
+    const alreadyAccepted = await prisma.offer.findFirst({
+      where: {
+        jobRequestId: offer.jobRequestId,
+        accepted: true,
+      },
+    });
+
+    if (alreadyAccepted) {
+      return res.status(400).json({ error: "An offer has already been accepted for this job." });
+    }
+
     const user = offer.jobRequest.user;
     const discount = getCustomerDiscount(user.subscriptionStart);
     const finalPrice = offer.price * (1 - discount / 100);
 
+    // Create booking (allowing serviceId to be optional/null)
     const booking = await prisma.booking.create({
       data: {
         customer: user.name,
         bookedAt: new Date(),
         price: finalPrice,
-        serviceId: 0, // Update if needed
+        serviceId: null,
         userId: user.id,
       },
+    });
+
+    // Mark the selected offer as accepted
+    await prisma.offer.update({
+      where: { id: offer.id },
+      data: { accepted: true },
+    });
+
+    // Lock all other offers for this job
+    await prisma.offer.updateMany({
+      where: {
+        jobRequestId: offer.jobRequestId,
+        NOT: { id: offer.id },
+      },
+      data: { locked: true },
+    });
+
+    // Mark the job as taken
+    await prisma.jobRequest.update({
+      where: { id: offer.jobRequestId },
+      data: { taken: true },
     });
 
     res.json({
@@ -92,13 +127,16 @@ export const acceptOffer = async (req, res) => {
   }
 };
 
-// Get all offers made by the logged-in provider (for Provider Dashboard)
+// Get all offers made by the logged-in provider
 export const getMyOffers = async (req, res) => {
   try {
-    console.log("Provider ID:", req.user.id); 
     const offers = await prisma.offer.findMany({
       where: { providerId: req.user.id },
-      include: { jobRequest: { include: { user: true } } },
+      include: {
+        jobRequest: {
+          include: { user: true },
+        },
+      },
       orderBy: { createdAt: 'desc' },
     });
     res.json(offers);

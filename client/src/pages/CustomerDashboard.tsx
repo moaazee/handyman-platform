@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Container, Card, Button, Alert, Form, Row, Col, Badge } from "react-bootstrap";
+import { Container, Card, Button, Alert, Form, Row, Col, Badge, Collapse } from "react-bootstrap";
 import api from "../api/axios";
 
 interface Booking {
@@ -11,7 +11,7 @@ interface Booking {
   price: number;
   service: {
     title: string;
-  };
+  } | null; // Handle potential null value for service
 }
 
 interface Job {
@@ -22,6 +22,7 @@ interface Job {
   location: string;
   deadline: string;
   createdAt: string;
+  taken?: boolean;
 }
 
 interface Offer {
@@ -33,6 +34,8 @@ interface Offer {
     name: string;
     email: string;
   };
+  accepted?: boolean;
+  locked?: boolean;
 }
 
 export default function CustomerDashboard() {
@@ -42,6 +45,7 @@ export default function CustomerDashboard() {
   const [rescheduleDate, setRescheduleDate] = useState<{ [key: number]: string }>({});
   const [jobs, setJobs] = useState<Job[]>([]);
   const [offersMap, setOffersMap] = useState<{ [jobId: number]: Offer[] }>({});
+  const [expandedJobId, setExpandedJobId] = useState<number | null>(null);
 
   const fetchBookings = async () => {
     try {
@@ -82,6 +86,22 @@ export default function CustomerDashboard() {
       setOffersMap(offersByJob);
     } catch (err) {
       console.error("Failed to fetch posted jobs or offers", err);
+    }
+  };
+
+  const toggleJob = (id: number) => {
+    setExpandedJobId(prev => (prev === id ? null : id));
+  };
+
+  const acceptOffer = async (offerId: number) => {
+    try {
+      const res = await api.post(`/offers/accept/${offerId}`);
+      alert(res.data.message);
+      fetchJobsAndOffers();
+      fetchBookings();
+    } catch (err) {
+      console.error("Failed to accept offer", err);
+      alert("Failed to accept offer.");
     }
   };
 
@@ -130,7 +150,7 @@ export default function CustomerDashboard() {
         bookings.map((booking) => (
           <Card key={booking.id} className="mb-3 shadow-sm">
             <Card.Body>
-              <Card.Title>{booking.service.title}</Card.Title>
+              <Card.Title>{booking.service ? booking.service.title : "No Service Title"}</Card.Title>
               <Card.Text>
                 Booked on <strong>{new Date(booking.bookedAt).toLocaleString()}</strong>
               </Card.Text>
@@ -204,24 +224,44 @@ export default function CustomerDashboard() {
                   Posted on {new Date(job.createdAt).toLocaleDateString()}
                 </Card.Text>
 
-                {offersMap[job.id] && offersMap[job.id].length > 0 && (
-                  <>
-                    <hr />
-                    <strong>Offers:</strong>
-                    {offersMap[job.id].map((offer) => (
-                      <Card key={offer.id} className="mt-2 shadow-sm">
-                        <Card.Body>
-                          <Card.Text>
-                            <strong>{offer.provider.name}</strong>
-                          </Card.Text>
-                          <Card.Text>💬 {offer.message}</Card.Text>
-                          <Card.Text>💰 DKK {offer.price}</Card.Text>
-                          <Card.Text>📅 Available: {new Date(offer.available).toLocaleDateString()}</Card.Text>
-                        </Card.Body>
-                      </Card>
-                    ))}
-                  </>
-                )}
+                <Button
+                  variant="outline-primary"
+                  size="sm"
+                  className="mt-2"
+                  onClick={() => toggleJob(job.id)}
+                >
+                  {expandedJobId === job.id ? "Hide Offers" : `View Offers (${offersMap[job.id]?.length || 0})`}
+                </Button>
+
+                <Collapse in={expandedJobId === job.id}>
+                  <div className="mt-3">
+                    {offersMap[job.id] && offersMap[job.id].length > 0 ? (
+                      offersMap[job.id].map((offer) => (
+                        <Card key={offer.id} className={`mb-2 ${offer.accepted ? 'border-success' : 'border-secondary'}`}>
+                          <Card.Body>
+                            <Card.Text><strong>{offer.provider.name}</strong></Card.Text>
+                            <Card.Text>💬 {offer.message}</Card.Text>
+                            <Card.Text>💰 DKK {offer.price}</Card.Text>
+                            <Card.Text>📅 Available: {new Date(offer.available).toLocaleDateString()}</Card.Text>
+                            {offer.accepted && <Badge bg="success">Accepted</Badge>}
+                            {!offer.accepted && (
+                              <Button
+                                size="sm"
+                                variant="outline-success"
+                                onClick={() => acceptOffer(offer.id)}
+                                className="mt-2"
+                              >
+                                Accept Offer
+                              </Button>
+                            )}
+                          </Card.Body>
+                        </Card>
+                      ))
+                    ) : (
+                      <p className="text-muted">No offers yet.</p>
+                    )}
+                  </div>
+                </Collapse>
               </Card.Body>
             </Card>
           </Col>

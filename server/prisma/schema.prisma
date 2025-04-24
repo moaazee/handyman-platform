@@ -38,13 +38,13 @@ model Booking {
   id          Int      @id @default(autoincrement())
   customer    String
   bookedAt    DateTime @default(now())
-  serviceId   Int
+  serviceId   Int?
   price       Float
   status        String   @default("active")
   rescheduledAt DateTime?                   
   userId      Int
   user        User     @relation(fields: [userId], references: [id])
-  service     Service  @relation(fields: [serviceId], references: [id])
+  service     Service?  @relation(fields: [serviceId], references: [id])
 }
 
 model JobRequest {
@@ -56,6 +56,7 @@ model JobRequest {
   location    String
   deadline    DateTime
   createdAt   DateTime  @default(now())
+  taken       Boolean   @default(false)
 
   userId      Int
   user        User      @relation(fields: [userId], references: [id])
@@ -68,6 +69,8 @@ model Offer {
   price        Float
   available    DateTime
   createdAt    DateTime  @default(now())
+  accepted     Boolean   @default(false)
+  locked       Boolean   @default(false)
 
   jobRequestId Int
   providerId   Int
