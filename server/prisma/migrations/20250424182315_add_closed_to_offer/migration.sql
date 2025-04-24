@@ -28,7 +28,10 @@ CREATE TABLE "Booking" (
     "id" SERIAL NOT NULL,
     "customer" TEXT NOT NULL,
     "bookedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "serviceId" INTEGER NOT NULL,
+    "serviceId" INTEGER,
+    "price" DOUBLE PRECISION NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'active',
+    "rescheduledAt" TIMESTAMP(3),
     "userId" INTEGER NOT NULL,
 
     CONSTRAINT "Booking_pkey" PRIMARY KEY ("id")
@@ -44,6 +47,7 @@ CREATE TABLE "JobRequest" (
     "location" TEXT NOT NULL,
     "deadline" TIMESTAMP(3) NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "taken" BOOLEAN NOT NULL DEFAULT false,
     "userId" INTEGER NOT NULL,
 
     CONSTRAINT "JobRequest_pkey" PRIMARY KEY ("id")
@@ -56,6 +60,9 @@ CREATE TABLE "Offer" (
     "price" DOUBLE PRECISION NOT NULL,
     "available" TIMESTAMP(3) NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "accepted" BOOLEAN NOT NULL DEFAULT false,
+    "locked" BOOLEAN NOT NULL DEFAULT false,
+    "closed" BOOLEAN NOT NULL DEFAULT false,
     "jobRequestId" INTEGER NOT NULL,
     "providerId" INTEGER NOT NULL,
 
@@ -72,7 +79,7 @@ ALTER TABLE "Service" ADD CONSTRAINT "Service_userId_fkey" FOREIGN KEY ("userId"
 ALTER TABLE "Booking" ADD CONSTRAINT "Booking_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Booking" ADD CONSTRAINT "Booking_serviceId_fkey" FOREIGN KEY ("serviceId") REFERENCES "Service"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Booking" ADD CONSTRAINT "Booking_serviceId_fkey" FOREIGN KEY ("serviceId") REFERENCES "Service"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "JobRequest" ADD CONSTRAINT "JobRequest_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

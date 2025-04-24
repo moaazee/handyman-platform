@@ -70,7 +70,8 @@ model Offer {
   available    DateTime
   createdAt    DateTime  @default(now())
   accepted     Boolean   @default(false)
-  locked       Boolean   @default(false)
+  locked       Boolean   @default(false)  // We use this field to lock the offer once accepted
+  closed       Boolean   @default(false)  // Add a field to close the offer once accepted
 
   jobRequestId Int
   providerId   Int

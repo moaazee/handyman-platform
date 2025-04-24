@@ -7,26 +7,39 @@ const prisma = new PrismaClient();
 export const createOffer = async (req, res) => {
   const { message, price, available, jobRequestId } = req.body;
 
-  if (req.user.role !== 'provider') {
-    return res.status(403).json({ error: "Only providers can make offers" });
+  // Find the job request to check if it's already taken
+  const jobRequest = await prisma.jobRequest.findUnique({
+    where: { id: parseInt(jobRequestId) },
+  });
+
+  if (!jobRequest) {
+    return res.status(404).json({ error: "Job request not found" });
   }
 
+  // Prevent new offers if the job is already taken
+  if (jobRequest.taken) {
+    return res.status(400).json({ error: "This job has already been taken, no new offers can be made" });
+  }
+
+  // Create the offer
   try {
-    const offer = await prisma.offer.create({
+    const newOffer = await prisma.offer.create({
       data: {
         message,
-        price: parseFloat(price),
+        price,
         available: new Date(available),
         jobRequestId: parseInt(jobRequestId),
         providerId: req.user.id,
       },
     });
-    res.json(offer);
+
+    res.json(newOffer);
   } catch (err) {
-    console.error("Create offer failed:", err);
+    console.error("Failed to create offer:", err);
     res.status(500).json({ error: "Failed to create offer" });
   }
 };
+
 
 // Get all offers for a job (for the customer)
 export const getOffersForJob = async (req, res) => {
@@ -67,20 +80,31 @@ export const acceptOffer = async (req, res) => {
       },
     });
 
-    if (!offer) return res.status(404).json({ error: "Offer not found" });
+    if (!offer) {
+      console.error("Offer not found");
+      return res.status(404).json({ error: "Offer not found" });
+    }
 
-    // Check if an offer is already accepted for this job
-    const alreadyAccepted = await prisma.offer.findFirst({
+    // Check if the job has already been taken
+    if (offer.jobRequest.taken) {
+      console.error("This job has already been taken");
+      return res.status(400).json({ error: "This job has already been taken" });
+    }
+
+    // Check if an offer has already been accepted for this job
+    const existingAcceptedOffer = await prisma.offer.findFirst({
       where: {
         jobRequestId: offer.jobRequestId,
         accepted: true,
       },
     });
 
-    if (alreadyAccepted) {
+    if (existingAcceptedOffer) {
+      console.error("An offer has already been accepted for this job.");
       return res.status(400).json({ error: "An offer has already been accepted for this job." });
     }
 
+    // Apply discount
     const user = offer.jobRequest.user;
     const discount = getCustomerDiscount(user.subscriptionStart);
     const finalPrice = offer.price * (1 - discount / 100);
@@ -96,19 +120,19 @@ export const acceptOffer = async (req, res) => {
       },
     });
 
-    // Mark the selected offer as accepted
+    // Mark the selected offer as accepted and closed
     await prisma.offer.update({
-      where: { id: offer.id },
-      data: { accepted: true },
+      where: { id: parseInt(offerId) },
+      data: { accepted: true, closed: true },
     });
 
     // Lock all other offers for this job
     await prisma.offer.updateMany({
       where: {
         jobRequestId: offer.jobRequestId,
-        NOT: { id: offer.id },
+        NOT: { id: parseInt(offerId) },
       },
-      data: { locked: true },
+      data: { closed: true },
     });
 
     // Mark the job as taken
@@ -117,15 +141,18 @@ export const acceptOffer = async (req, res) => {
       data: { taken: true },
     });
 
+    console.log(`Offer accepted for job: ${offer.jobRequest.title}. Final price: ${finalPrice}`);
+    
     res.json({
       message: `Offer accepted. Final price after ${discount}% discount: DKK ${finalPrice.toFixed(2)}`,
       booking,
     });
   } catch (err) {
-    console.error("Accept offer failed:", err);
+    console.error("Error accepting offer:", err);
     res.status(500).json({ error: "Failed to accept offer" });
   }
 };
+
 
 // Get all offers made by the logged-in provider
 export const getMyOffers = async (req, res) => {

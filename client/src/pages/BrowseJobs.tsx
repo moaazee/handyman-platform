@@ -12,6 +12,7 @@ interface JobRequest {
   image?: string;
   location: string;
   deadline: string;
+  taken: boolean; // Add 'taken' field to track job status
   createdAt: string;
   user: {
     name: string;
@@ -56,13 +57,20 @@ export default function BrowseJobs() {
                 <Card.Text><strong>Location:</strong> {job.location}</Card.Text>
                 <Card.Text><strong>Deadline:</strong> {new Date(job.deadline).toLocaleDateString()}</Card.Text>
                 <Card.Text className="text-muted">
-                  Posted by {job.user.name} 
+                  Posted by {job.user.name}
                 </Card.Text>
-                <Link to={`/make-offer/${job.id}`} style={{ textDecoration: 'none' }}>
-                  <Button variant="primary">
-                    Make Offer
+
+                {job.taken ? (
+                  <Button variant="secondary" disabled>
+                    Job Taken
                   </Button>
-                </Link>
+                ) : (
+                  <Link to={`/make-offer/${job.id}`} style={{ textDecoration: 'none' }}>
+                    <Button variant="primary">
+                      Make Offer
+                    </Button>
+                  </Link>
+                )}
               </Card.Body>
             </Card>
           </Col>
