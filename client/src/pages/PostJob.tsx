@@ -30,21 +30,20 @@ export default function PostJob() {
   };
 
   const handleImageUpload = () => {
-    const inputFile = document.createElement("input");
-    inputFile.type = "file";
-    inputFile.accept = "image/*";
-
-    inputFile.onchange = (event: Event) => {
+    const inputFile = document.createElement('input');
+    inputFile.type = 'file';
+    inputFile.accept = 'image/*';
+  
+    inputFile.onchange = async (event: Event) => {
       const file = (event.target as HTMLInputElement).files?.[0];
       if (!file) return;
-
-      const storageRef = ref(storage, `jobs/${file.name}`);
+  
+      const storageRef = ref(storage, `images/${Date.now()}-${file.name}`);
       const uploadTask = uploadBytesResumable(storageRef, file);
-
+  
       setUploading(true);
       setProgress(0);
-      setImagePreview(URL.createObjectURL(file));
-
+  
       uploadTask.on(
         "state_changed",
         (snapshot) => {
@@ -52,18 +51,22 @@ export default function PostJob() {
           setProgress(progress);
         },
         (error) => {
-          console.error("Upload error:", error);
+          console.error("Upload failed:", error);
           setUploading(false);
         },
-        () => {
-          getDownloadURL(uploadTask.snapshot.ref).then((url) => {
-            setForm((prev) => ({ ...prev, image: url }));
-            setUploading(false);
-          });
+        async () => {
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+          setForm((prev) => ({
+            ...prev,
+            image: downloadURL,
+          }));
+          setImagePreview(downloadURL); // optional preview
+          setUploading(false);
+          console.log("Uploaded image URL:", downloadURL);
         }
       );
     };
-
+  
     inputFile.click();
   };
 

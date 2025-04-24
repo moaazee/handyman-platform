@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Container, Card, Row, Col, Spinner } from "react-bootstrap";
+import { Container, Card, Row, Col, Spinner, Button } from "react-bootstrap";
 import api from "../api/axios";
 
 interface Analytics {
@@ -35,6 +35,25 @@ export default function AdminAnalytics() {
     <Container className="py-5">
       <h2 className="text-center mb-4">📊 Admin Analytics</h2>
 
+      {/* Export Buttons */}
+      <div className="d-flex justify-content-end mb-4 gap-3">
+        <Button
+          variant="outline-primary"
+          href="http://localhost:5000/api/admin/export/users"
+          target="_blank"
+        >
+          📥 Export Users CSV
+        </Button>
+        <Button
+          variant="outline-success"
+          href="http://localhost:5000/api/admin/export/bookings"
+          target="_blank"
+        >
+          📥 Export Bookings CSV
+        </Button>
+      </div>
+
+      {/* Analytics Cards */}
       {loading || !data ? (
         <Spinner animation="border" />
       ) : (
@@ -44,7 +63,9 @@ export default function AdminAnalytics() {
               <Card.Body>
                 <h5>Total Users</h5>
                 <h3>{data.totalUsers}</h3>
-                <small>Customers: {data.totalCustomers}, Providers: {data.totalProviders}</small>
+                <small>
+                  Customers: {data.totalCustomers}, Providers: {data.totalProviders}
+                </small>
               </Card.Body>
             </Card>
           </Col>
@@ -53,7 +74,9 @@ export default function AdminAnalytics() {
               <Card.Body>
                 <h5>Total Bookings</h5>
                 <h3>{data.totalBookings}</h3>
-                <small>Active: {data.activeBookings}, Cancelled: {data.cancelledBookings}</small>
+                <small>
+                  Active: {data.activeBookings}, Cancelled: {data.cancelledBookings}
+                </small>
               </Card.Body>
             </Card>
           </Col>

@@ -55,7 +55,7 @@ export default function BrowseJobs() {
                 <Card.Text><strong>Location:</strong> {job.location}</Card.Text>
                 <Card.Text><strong>Deadline:</strong> {new Date(job.deadline).toLocaleDateString()}</Card.Text>
                 <Card.Text className="text-muted">
-                  Posted by {job.user.name} ({job.user.email})
+                  Posted by {job.user.name} 
                 </Card.Text>
                 <Button variant="primary" as="a" href={`/make-offer/${job.id}`}>
                   Make Offer

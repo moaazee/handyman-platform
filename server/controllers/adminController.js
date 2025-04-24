@@ -1,4 +1,6 @@
 import { PrismaClient } from '@prisma/client';
+import { Parser } from 'json2csv';
+
 const prisma = new PrismaClient();
 
 // Get all users
@@ -53,6 +55,7 @@ export const deleteBooking = async (req, res) => {
   }
 };
 
+// Admin analytics
 export const getAnalytics = async (req, res) => {
   try {
     const totalUsers = await prisma.user.count();
@@ -80,5 +83,54 @@ export const getAnalytics = async (req, res) => {
   } catch (err) {
     console.error("Admin analytics failed:", err);
     res.status(500).json({ error: "Failed to load analytics" });
+  }
+};
+
+// CSV Export: Users
+export const downloadUsersCSV = async (req, res) => {
+  try {
+    const users = await prisma.user.findMany();
+    const parser = new Parser({
+      fields: ["id", "name", "email", "role", "subscriptionStart"],
+    });
+    const csv = parser.parse(users);
+
+    res.header("Content-Type", "text/csv");
+    res.attachment("users.csv");
+    return res.send(csv);
+  } catch (err) {
+    console.error("CSV export users failed:", err);
+    res.status(500).json({ error: "Failed to export users" });
+  }
+};
+
+// CSV Export: Bookings
+export const downloadBookingsCSV = async (req, res) => {
+  try {
+    const bookings = await prisma.booking.findMany({
+      include: { user: true, service: true },
+    });
+
+    const flattened = bookings.map((b) => ({
+      id: b.id,
+      customer: b.customer,
+      bookedAt: b.bookedAt,
+      price: b.price,
+      status: b.status,
+      user: b.user.email,
+      service: b.service.title,
+    }));
+
+    const parser = new Parser({
+      fields: ["id", "customer", "bookedAt", "price", "status", "user", "service"],
+    });
+    const csv = parser.parse(flattened);
+
+    res.header("Content-Type", "text/csv");
+    res.attachment("bookings.csv");
+    return res.send(csv);
+  } catch (err) {
+    console.error("CSV export bookings failed:", err);
+    res.status(500).json({ error: "Failed to export bookings" });
   }
 };
