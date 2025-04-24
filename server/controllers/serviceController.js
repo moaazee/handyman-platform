@@ -2,11 +2,10 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// GET /api/services
+// GET /api/services - For guests (non-authenticated users) and providers
 export const getAllServices = async (req, res) => {
   try {
     const services = await prisma.service.findMany({
-      where: { userId: req.user.id },
       orderBy: { createdAt: 'desc' },
     });
     res.json(services);
@@ -16,10 +15,11 @@ export const getAllServices = async (req, res) => {
   }
 };
 
-// POST /api/services
+// POST /api/services - For authenticated providers only
 export const createService = async (req, res) => {
   const { title, category, description, image } = req.body;
 
+  // Ensure only providers can create services
   if (req.user.role !== 'provider') {
     return res.status(403).json({ error: "Only providers can create services" });
   }
@@ -41,3 +41,17 @@ export const createService = async (req, res) => {
   }
 };
 
+// GET /api/services (no authentication required) - For guests (non-authenticated users)
+export const getServices = async (req, res) => {
+  try {
+    const services = await prisma.service.findMany({
+      include: {
+        user: true, // Show the user who offered the service, if necessary
+      },
+    });
+    res.json(services);
+  } catch (err) {
+    console.error("Error fetching services:", err);
+    res.status(500).json({ error: "Failed to fetch services" });
+  }
+};

@@ -1,0 +1,39 @@
+/* Hero Section */
+.heroSection {
+    background: #007bff; /* Primary blue color for the hero section */
+    padding: 60px 0;
+    color: white;
+    text-align: center;
+  }
+  
+  .heroSection h1 {
+    font-size: 3rem;
+    margin-bottom: 20px;
+  }
+  
+  .heroSection p {
+    font-size: 1.2rem;
+  }
+  
+  .heroSection .btn {
+    font-size: 1.2rem;
+    margin-top: 20px;
+  }
+  
+  /* Service Cards */
+  .serviceCard {
+    transition: transform 0.3s ease-in-out;
+  }
+  
+  .serviceCard:hover {
+    transform: translateY(-10px);
+  }
+  
+  .serviceCard .card-title {
+    font-weight: bold;
+    font-size: 1.25rem;
+  }
+  
+  .card-body {
+    padding: 1.5rem;
+  }
