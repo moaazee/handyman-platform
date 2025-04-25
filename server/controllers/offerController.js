@@ -1,13 +1,11 @@
 import { PrismaClient } from "@prisma/client";
-import { getCustomerDiscount } from "../utils/discountHelper.js";
-
 const prisma = new PrismaClient();
 
 // Create an offer
 export const createOffer = async (req, res) => {
   const { message, price, available, jobRequestId } = req.body;
 
-  // Find the job request to check if it's already taken
+  // Find the job request to check if it's already taken or cancelled
   const jobRequest = await prisma.jobRequest.findUnique({
     where: { id: parseInt(jobRequestId) },
   });
@@ -16,9 +14,9 @@ export const createOffer = async (req, res) => {
     return res.status(404).json({ error: "Job request not found" });
   }
 
-  // Prevent new offers if the job is already taken
-  if (jobRequest.taken) {
-    return res.status(400).json({ error: "This job has already been taken, no new offers can be made" });
+  // Prevent new offers if the job is already taken or cancelled
+  if (jobRequest.taken || jobRequest.cancelled) {
+    return res.status(400).json({ error: "This job is no longer available" });
   }
 
   // Create the offer
@@ -39,7 +37,6 @@ export const createOffer = async (req, res) => {
     res.status(500).json({ error: "Failed to create offer" });
   }
 };
-
 
 // Get all offers for a job (for the customer)
 export const getOffersForJob = async (req, res) => {
@@ -104,19 +101,14 @@ export const acceptOffer = async (req, res) => {
       return res.status(400).json({ error: "An offer has already been accepted for this job." });
     }
 
-    // Apply discount
-    const user = offer.jobRequest.user;
-    const discount = getCustomerDiscount(user.subscriptionStart);
-    const finalPrice = offer.price * (1 - discount / 100);
-
     // Create booking (allowing serviceId to be optional/null)
     const booking = await prisma.booking.create({
       data: {
-        customer: user.name,
+        customer: offer.jobRequest.user.name,
         bookedAt: new Date(),
-        price: finalPrice,
+        price: offer.price,
         serviceId: null,
-        userId: user.id,
+        userId: offer.jobRequest.user.id,
       },
     });
 
@@ -141,10 +133,10 @@ export const acceptOffer = async (req, res) => {
       data: { taken: true },
     });
 
-    console.log(`Offer accepted for job: ${offer.jobRequest.title}. Final price: ${finalPrice}`);
-    
+    console.log(`Offer accepted for job: ${offer.jobRequest.title}.`);
+
     res.json({
-      message: `Offer accepted. Final price after ${discount}% discount: DKK ${finalPrice.toFixed(2)}`,
+      message: `Offer accepted. Final price: DKK ${offer.price}`,
       booking,
     });
   } catch (err) {
@@ -153,22 +145,26 @@ export const acceptOffer = async (req, res) => {
   }
 };
 
-
 // Get all offers made by the logged-in provider
 export const getMyOffers = async (req, res) => {
   try {
     const offers = await prisma.offer.findMany({
-      where: { providerId: req.user.id },
+      where: {
+        providerId: req.user.id,
+        jobRequest: {
+          cancelled: false,
+        },
+      },
       include: {
         jobRequest: {
           include: { user: true },
         },
       },
-      orderBy: { createdAt: 'desc' },
     });
+
     res.json(offers);
   } catch (err) {
-    console.error("Failed to fetch provider's offers:", err);
-    res.status(500).json({ error: "Failed to fetch offers" });
+    console.error("Failed to get provider offers:", err);
+    res.status(500).json({ error: "Failed to load offers" });
   }
 };

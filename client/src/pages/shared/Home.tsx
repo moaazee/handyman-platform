@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Container, Card, Button, Row, Col, Badge } from 'react-bootstrap';
-import api from '../api/axios';
-import { useAuth } from '../hooks/useAuth';
+import api from '../../api/axios';
+import { useAuth } from '../../hooks/useAuth';
 import { Link } from 'react-router-dom';
-import styles from '../styles/Home.module.css'; // Import the CSS Module
+import styles from '../../styles/Home.module.css'; // Import the CSS Module
 
 interface Service {
   id: number;

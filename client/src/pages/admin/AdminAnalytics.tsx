@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Container, Card, Row, Col, Spinner, Button } from "react-bootstrap";
-import api from "../api/axios";
+import api from "../../api/axios";
 
 interface Analytics {
   totalUsers: number;

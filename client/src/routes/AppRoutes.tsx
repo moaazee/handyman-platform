@@ -1,24 +1,29 @@
 import { Routes, Route } from 'react-router-dom';
-import Home from '../pages/Home';
-import Login from '../pages/Login';
-import Register from '../pages/Register';
-import Services from '../pages/Services';
-import ProviderDashboard from '../pages/ProviderDashboard';
-import BookingForm from '../pages/BookingForm';
-import Unauthorized from '../pages/Unauthorized.tsx';
+import Home from '../pages/shared/Home';
+import Login from '../pages/shared/Login';
+import Register from '../pages/shared/Register';
+import Services from '../pages/shared/Services';
+import Unauthorized from '../pages/shared/Unauthorized';
 import ProtectedRoute from './ProtectedRoute';
-import CustomerDashboard from "../pages/CustomerDashboard";
-import AdminDashboard from "../pages/AdminDashboard";
-import PostJob from '../pages/PostJob';
-import BrowseJobs from '../pages/BrowseJobs';
-import MakeOffer from '../pages/MakeOffer';
-import ViewOffers from '../pages/ViewOffers';
-import AdminAnalytics from "../pages/AdminAnalytics";
-import MyOffers from '../pages/MyOffers';
+
+import ProviderDashboard from '../pages/provider/ProviderDashboard';
+import BookingForm from '../pages/booking/BookingForm';
+import BrowseJobs from '../pages/provider/BrowseJobs';
+import MakeOffer from '../pages/provider/MakeOffer';
+import MyOffers from '../pages/provider/MyOffers';
+
+import CustomerDashboard from '../pages/customer/CustomerDashboard';
+import PostJob from '../pages/customer/PostJob';
+import ViewOffers from '../pages/customer/ViewOffers';
+import JobDetails from '../pages/customer/JobDetails'; 
+
+import AdminDashboard from '../pages/admin/AdminDashboard';
+import AdminAnalytics from '../pages/admin/AdminAnalytics';
 
 export default function AppRoutes() {
   return (
     <Routes>
+      {/* Public Routes */}
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
@@ -26,11 +31,47 @@ export default function AppRoutes() {
       <Route path="/unauthorized" element={<Unauthorized />} />
 
       {/* Protected Routes */}
+
+      {/* Provider */}
       <Route
         path="/provider"
         element={
           <ProtectedRoute allowedRoles={['provider']}>
             <ProviderDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/browse-jobs"
+        element={
+          <ProtectedRoute allowedRoles={['provider']}>
+            <BrowseJobs />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/make-offer/:jobId"
+        element={
+          <ProtectedRoute allowedRoles={['provider']}>
+            <MakeOffer />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/my-offers"
+        element={
+          <ProtectedRoute allowedRoles={['provider']}>
+            <MyOffers />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Customer */}
+      <Route
+        path="/dashboard-customer"
+        element={
+          <ProtectedRoute allowedRoles={["customer"]}>
+            <CustomerDashboard />
           </ProtectedRoute>
         }
       />
@@ -42,34 +83,6 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       />
-
-      <Route
-        path="/browse-jobs"
-        element={
-          <ProtectedRoute allowedRoles={['provider']}>
-            <BrowseJobs />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/make-offer/:jobId"
-        element={
-          <ProtectedRoute allowedRoles={['provider']}>
-            <MakeOffer />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/my-offers"
-        element={
-          <ProtectedRoute allowedRoles={['provider']}>
-            <MyOffers />
-          </ProtectedRoute>
-        }
-      />
-
       <Route
         path="/job/:jobId/offers"
         element={
@@ -78,16 +91,24 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       />
-
       <Route
-        path="/dashboard-customer"
+        path="/job/:jobId/details"
         element={
           <ProtectedRoute allowedRoles={["customer"]}>
-            <CustomerDashboard />
+            <JobDetails />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/book"
+        element={
+          <ProtectedRoute allowedRoles={['customer']}>
+            <BookingForm />
           </ProtectedRoute>
         }
       />
 
+      {/* Admin */}
       <Route
         path="/admin-dashboard"
         element={
@@ -96,21 +117,11 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       />
-
       <Route
         path="/admin-analytics"
         element={
           <ProtectedRoute allowedRoles={["admin"]}>
             <AdminAnalytics />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/book"
-        element={
-          <ProtectedRoute allowedRoles={['customer']}>
-            <BookingForm />
           </ProtectedRoute>
         }
       />

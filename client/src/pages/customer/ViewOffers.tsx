@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Container, Card, Button, Row, Col } from 'react-bootstrap';
-import api from '../api/axios';
-import { useAuth } from '../hooks/useAuth';
+import api from '../../api/axios';
+import { useAuth } from '../../hooks/useAuth';
 
 interface Offer {
   id: number;

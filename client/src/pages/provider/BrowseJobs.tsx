@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Container, Card, Button, Row, Col, Badge } from 'react-bootstrap';
-import api from '../api/axios';
-import { useAuth } from '../hooks/useAuth';
+import api from '../../api/axios';
+import { useAuth } from '../../hooks/useAuth';
 import { Link } from 'react-router-dom';
 
 interface Service {
@@ -13,6 +13,10 @@ interface Service {
   user: {
     name: string;
     email: string;
+  };
+  jobRequest: {
+    id: number;
+    cancelled: boolean;
   };
 }
 
@@ -28,7 +32,17 @@ export default function BrowseServices() {
           Authorization: token ? `Bearer ${token}` : '', // Add token if available
         },
       });
-      setServices(res.data);
+
+      // Log the response to check the data structure
+      console.log('Fetched services:', res.data);
+
+      // Filter out services that have canceled job requests
+      const validServices = res.data.filter((service: Service) => {
+        console.log('Checking service cancellation status:', service.jobRequest.cancelled); // Log cancellation status
+        return !service.jobRequest.cancelled;
+      });
+
+      setServices(validServices);
     } catch (error) {
       console.error("Error fetching services:", error);
     }

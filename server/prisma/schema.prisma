@@ -57,11 +57,13 @@ model JobRequest {
   deadline    DateTime
   createdAt   DateTime  @default(now())
   taken       Boolean   @default(false)
+  cancelled   Boolean   @default(false)  
 
   userId      Int
   user        User      @relation(fields: [userId], references: [id])
   offers      Offer[]
 }
+
 
 model Offer {
   id           Int       @id @default(autoincrement())

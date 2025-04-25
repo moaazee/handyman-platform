@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Container, Form, Button, Row, Col, ProgressBar, Card } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
-import api from '../api/axios';
-import { storage, ref, uploadBytesResumable, getDownloadURL } from '../firebaseConfig';
-import { useAuth } from '../hooks/useAuth';
+import api from '../../api/axios';
+import { storage, ref, uploadBytesResumable, getDownloadURL } from '../../firebaseConfig';
+import { useAuth } from '../../hooks/useAuth';
 
 export default function PostJob() {
   const navigate = useNavigate();

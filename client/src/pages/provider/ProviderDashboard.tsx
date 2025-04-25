@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Container, Card, Row, Col, Spinner } from 'react-bootstrap';
-import api from '../api/axios';
-import { useAuth } from '../hooks/useAuth';
+import api from '../../api/axios';
+import { useAuth } from '../../hooks/useAuth';
 
 interface JobRequest {
   id: number;
@@ -11,6 +11,7 @@ interface JobRequest {
   user: {
     name: string;
   };
+  cancelled: boolean; 
 }
 
 interface Offer {
@@ -32,7 +33,16 @@ export default function ProviderDashboard() {
         const res = await api.get('/offers/my', {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setOffers(res.data);
+
+        // Log the response to check if canceled jobs are correctly marked
+        console.log("Fetched offers:", res.data);
+
+        // Fetch jobs that are not canceled
+        const validOffers = res.data.filter((offer: Offer) => {
+          return offer.jobRequest && !offer.jobRequest.cancelled; // Only show offers for non-canceled jobs
+        });
+
+        setOffers(validOffers);
       } catch (err) {
         console.error("Failed to fetch offers:", err);
       } finally {

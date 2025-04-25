@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Container, Card, Button, Alert, Form, Row, Col, Badge, Collapse } from "react-bootstrap";
-import api from "../api/axios";
+import { Container, Card, Button, Alert, Row, Col, Badge, Collapse } from "react-bootstrap";
+import api from "../../api/axios";
+import { Link } from "react-router-dom";
 
 interface Booking {
   id: number;
@@ -11,7 +12,7 @@ interface Booking {
   price: number;
   service: {
     title: string;
-  } | null; // Handle potential null value for service
+  } | null;
 }
 
 interface Job {
@@ -23,6 +24,7 @@ interface Job {
   deadline: string;
   createdAt: string;
   taken?: boolean;
+  cancelled?: boolean;
 }
 
 interface Offer {
@@ -42,7 +44,6 @@ export default function CustomerDashboard() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [discount, setDiscount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const [rescheduleDate, setRescheduleDate] = useState<{ [key: number]: string }>({});
   const [jobs, setJobs] = useState<Job[]>([]);
   const [offersMap, setOffersMap] = useState<{ [jobId: number]: Offer[] }>({});
   const [expandedJobId, setExpandedJobId] = useState<number | null>(null);
@@ -50,7 +51,7 @@ export default function CustomerDashboard() {
   const fetchBookings = async () => {
     try {
       const res = await api.get("/bookings");
-      setBookings(res.data);
+      setBookings(res.data.filter((b: Booking) => b.status !== "cancelled"));
     } catch (err) {
       console.error("Error loading bookings", err);
     } finally {
@@ -70,7 +71,6 @@ export default function CustomerDashboard() {
   const fetchJobsAndOffers = async () => {
     try {
       const jobsRes = await api.get("/jobs/me");
-      setJobs(jobsRes.data);
 
       const offersByJob: { [jobId: number]: Offer[] } = {};
       await Promise.all(
@@ -83,14 +83,22 @@ export default function CustomerDashboard() {
           }
         })
       );
+
       setOffersMap(offersByJob);
+
+      const filteredJobs = jobsRes.data.filter((job: Job) => {
+        const acceptedOffer = offersByJob[job.id]?.find((o) => o.accepted);
+        return !job.cancelled && !job.taken && !acceptedOffer;
+      });
+
+      setJobs(filteredJobs);
     } catch (err) {
-      console.error("Failed to fetch posted jobs or offers", err);
+      console.error("Failed to fetch jobs or offers", err);
     }
   };
 
   const toggleJob = (id: number) => {
-    setExpandedJobId(prev => (prev === id ? null : id));
+    setExpandedJobId((prev) => (prev === id ? null : id));
   };
 
   const acceptOffer = async (offerId: number) => {
@@ -100,7 +108,6 @@ export default function CustomerDashboard() {
       fetchJobsAndOffers();
       fetchBookings();
     } catch (err) {
-      console.error("Failed to accept offer", err);
       alert("Failed to accept offer.");
     }
   };
@@ -111,18 +118,6 @@ export default function CustomerDashboard() {
       fetchBookings();
     } catch (err) {
       console.error("Failed to cancel booking", err);
-    }
-  };
-
-  const rescheduleBooking = async (id: number) => {
-    try {
-      const newDate = rescheduleDate[id];
-      if (!newDate) return alert("Please choose a new date.");
-
-      await api.put(`/bookings/reschedule/${id}`, { newDate });
-      fetchBookings();
-    } catch (err) {
-      console.error("Reschedule failed", err);
     }
   };
 
@@ -160,48 +155,20 @@ export default function CustomerDashboard() {
                 </Card.Text>
               )}
               <Card.Text>
-                Status:{" "}
-                <strong className={booking.status === "cancelled" ? "text-danger" : "text-success"}>
-                  {booking.status}
-                </strong>
+                Status: <strong className={booking.status === "cancelled" ? "text-danger" : "text-success"}>{booking.status}</strong>
               </Card.Text>
               <Card.Text>
                 Final Price: <strong>DKK {booking.price.toFixed(2)}</strong>
               </Card.Text>
 
               {booking.status === "active" && (
-                <>
-                  <Form.Group className="mb-2">
-                    <Form.Label>Reschedule Date</Form.Label>
-                    <Form.Control
-                      type="date"
-                      value={rescheduleDate[booking.id] || ""}
-                      onChange={(e) =>
-                        setRescheduleDate((prev) => ({
-                          ...prev,
-                          [booking.id]: e.target.value,
-                        }))
-                      }
-                    />
-                  </Form.Group>
-
-                  <div className="d-flex gap-2">
-                    <Button
-                      variant="warning"
-                      size="sm"
-                      onClick={() => rescheduleBooking(booking.id)}
-                    >
-                      Reschedule
-                    </Button>
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      onClick={() => cancelBooking(booking.id)}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={() => cancelBooking(booking.id)}
+                >
+                  Cancel Booking
+                </Button>
               )}
             </Card.Body>
           </Card>
@@ -215,8 +182,18 @@ export default function CustomerDashboard() {
           <Col key={job.id} md={6} lg={4}>
             <Card className="shadow-sm h-100">
               <Card.Body>
-                <Card.Title>{job.title}</Card.Title>
-                <Badge bg="info" className="mb-2">{job.category}</Badge>
+                <div className="d-flex justify-content-between align-items-start">
+                  <div>
+                    <Card.Title>{job.title}</Card.Title>
+                    <Badge bg="info" className="mb-2">{job.category}</Badge>
+                  </div>
+                  <Link to={`/job/${job.id}/details`}>
+                    <Button variant="outline-secondary" size="sm">
+                      View & Edit
+                    </Button>
+                  </Link>
+                </div>
+
                 <Card.Text>{job.description}</Card.Text>
                 <Card.Text><strong>Location:</strong> {job.location}</Card.Text>
                 <Card.Text><strong>Deadline:</strong> {new Date(job.deadline).toLocaleDateString()}</Card.Text>

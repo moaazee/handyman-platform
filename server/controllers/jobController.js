@@ -39,6 +39,7 @@ export const getAllJobs = async (req, res) => {
     const jobs = await prisma.jobRequest.findMany({
       include: { user: true },
       orderBy: { createdAt: "desc" },
+      where: { cancelled: false } // Only fetch jobs that are not canceled
     });
     res.json(jobs);
   } catch (err) {
@@ -51,12 +52,71 @@ export const getAllJobs = async (req, res) => {
 export const getMyJobs = async (req, res) => {
   try {
     const jobs = await prisma.jobRequest.findMany({
-      where: { userId: req.user.id },
+      where: { userId: req.user.id, cancelled: false }, // Only get non-cancelled jobs
       orderBy: { createdAt: "desc" },
     });
     res.json(jobs);
   } catch (err) {
     console.error("❌ Fetch my jobs failed:", err);
     res.status(500).json({ error: "Failed to get your job requests" });
+  }
+};
+
+// Reschedule a job
+export const rescheduleJob = async (req, res) => {
+  const { jobId } = req.params;
+  const { newDate } = req.body;
+
+  try {
+    const updatedJob = await prisma.jobRequest.update({
+      where: { id: parseInt(jobId) },
+      data: { deadline: new Date(newDate) },
+    });
+
+    res.json({ message: "Job rescheduled successfully", job: updatedJob });
+  } catch (error) {
+    console.error("Error rescheduling job:", error);
+    res.status(500).json({ error: "Failed to reschedule job" });
+  }
+};
+
+// Update job details
+export const updateJob = async (req, res) => {
+  const { jobId } = req.params;
+  const { title, category, description, location, deadline } = req.body;
+
+  try {
+    const updatedJob = await prisma.jobRequest.update({
+      where: { id: parseInt(jobId) },
+      data: { title, category, description, location, deadline: new Date(deadline) },
+    });
+
+    res.json({ message: "Job updated successfully", job: updatedJob });
+  } catch (error) {
+    console.error("Error updating job:", error);
+    res.status(500).json({ error: "Failed to update job" });
+  }
+};
+
+export const cancelJob = async (req, res) => {
+  const { jobId } = req.params;
+
+  try {
+    // Cancel the job
+    const job = await prisma.jobRequest.update({
+      where: { id: parseInt(jobId) },
+      data: { cancelled: true },
+    });
+
+    // Close all offers associated with this job
+    await prisma.offer.updateMany({
+      where: { jobRequestId: parseInt(jobId) },
+      data: { closed: true }, // Close the offers for the cancelled job
+    });
+
+    res.json({ message: "Job cancelled", job });
+  } catch (err) {
+    console.error("❌ Cancel job failed:", err);
+    res.status(500).json({ error: "Failed to cancel job" });
   }
 };
